@@ -1,0 +1,6 @@
+ascon>=0.0.9
+qrcode[pil]>=7.4
+Pillow>=9.0
+sympy>=1.12
+flask>=3.0
+requests>=2.31
