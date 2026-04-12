@@ -6,13 +6,7 @@ A functional centralized EV Charging Payment Gateway that simulates smart-grid t
 ---
 
 ## Team Members
-- Srinath Murali
-- Pranshu Maheshwari 
-- Divyansh Nema
-- Rajvee
-- XYZ
-
-*(Replace with actual names and IDs)*
+- 
 
 ---
 
