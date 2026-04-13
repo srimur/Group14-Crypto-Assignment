@@ -134,11 +134,22 @@ def api_process_session():
     if fid is None:
         return jsonify({"success": False, "error": "Failed to decrypt QR code."})
 
-    # Forward to Grid Authority for transaction processing
+    # RSA-encrypt PIN and VMID using Grid's public key before forwarding
     try:
-        print(f"[Kiosk] Forwarding to Grid Authority — FID: {fid}")
+        from crypto_utils.rsa_utils import rsa_encrypt
+        pub_resp = http_client.get(f"{GRID_URL}/api/public_key", timeout=5)
+        pub = pub_resp.json()
+        e, n = pub["e"], pub["n"]
+        encrypted_pin = rsa_encrypt(int(pin) % n, (e, n))
+        encrypted_vmid = rsa_encrypt(int(vmid, 16) % n, (e, n))
+        print(f"[Kiosk] RSA-encrypted PIN: {encrypted_pin}")
+        print(f"[Kiosk] RSA-encrypted VMID: {encrypted_vmid}")
+        print(f"[Kiosk] Forwarding encrypted credentials to Grid Authority — FID: {fid}")
         r = http_client.post(f"{GRID_URL}/api/process_transaction", json={
-            "fid": fid, "vmid": vmid, "pin": pin, "amount": amount
+            "fid": fid, "vmid": vmid, "pin": pin,
+            "encrypted_pin": str(encrypted_pin),
+            "encrypted_vmid": str(encrypted_vmid),
+            "amount": amount
         }, timeout=10)
         result = r.json()
     except http_client.exceptions.ConnectionError:

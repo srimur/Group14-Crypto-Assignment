@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV Charging Gateway - System Flow</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; background:#f0f0f0; padding:20px; color:#333; }
+  h1 { text-align:center; margin-bottom:5px; font-size:22px; }
+  h2 { text-align:center; margin-bottom:20px; font-size:14px; color:#666; font-weight:normal; }
+  .section { background:#fff; border-radius:8px; padding:20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .section-title { font-size:16px; font-weight:bold; margin-bottom:15px; padding-bottom:8px; border-bottom:2px solid #eee; }
+
+  /* Entity boxes */
+  .entities { display:flex; justify-content:center; gap:30px; flex-wrap:wrap; margin-bottom:10px; }
+  .entity { border-radius:8px; padding:15px; width:280px; color:#fff; }
+  .entity h3 { font-size:15px; margin-bottom:8px; }
+  .entity p { font-size:12px; opacity:0.9; line-height:1.5; }
+  .entity .port { font-size:11px; opacity:0.7; margin-top:6px; }
+  .e-grid { background:#0d47a1; }
+  .e-kiosk { background:#2e7d32; }
+  .e-user { background:#6a1b9a; }
+
+  /* Flow diagram */
+  .flow { display:flex; flex-direction:column; gap:0; align-items:center; }
+  .flow-step { display:flex; align-items:center; gap:12px; width:100%; max-width:750px; }
+  .flow-num { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; color:#fff; flex-shrink:0; }
+  .flow-box { flex:1; padding:10px 14px; border-radius:6px; border:1px solid #ddd; background:#fafafa; font-size:13px; line-height:1.5; }
+  .flow-box .who { font-weight:bold; font-size:11px; margin-bottom:3px; }
+  .flow-box .what { color:#333; }
+  .flow-box .how { color:#888; font-size:11px; margin-top:3px; }
+  .flow-arrow { text-align:center; color:#999; font-size:18px; padding:2px 0; }
+  .c-grid { background:#0d47a1; }
+  .c-kiosk { background:#2e7d32; }
+  .c-user { background:#6a1b9a; }
+  .c-chain { background:#e65100; }
+
+  /* Crypto map */
+  .crypto-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:15px; }
+  .crypto-card { border:1px solid #ddd; border-radius:6px; padding:14px; background:#fafafa; }
+  .crypto-card h4 { font-size:14px; margin-bottom:8px; color:#0d47a1; }
+  .crypto-card .where { font-size:12px; color:#555; line-height:1.6; }
+  .crypto-card .detail { font-size:11px; color:#888; margin-top:6px; line-height:1.5; }
+
+  /* Edge case list */
+  .edge-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:10px; }
+  .edge-item { display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid #eee; border-radius:4px; font-size:12px; }
+  .edge-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+  .edge-text b { color:#333; }
+  .edge-text span { color:#666; }
+
+  /* File map */
+  .file-map { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:10px; }
+  .file-item { padding:8px 12px; border-left:3px solid #ccc; font-size:12px; background:#fafafa; }
+  .file-item .fname { font-family:monospace; font-weight:bold; color:#333; }
+  .file-item .fdesc { color:#666; margin-top:2px; }
+  .fl-grid { border-color:#0d47a1; }
+  .fl-kiosk { border-color:#2e7d32; }
+  .fl-user { border-color:#6a1b9a; }
+  .fl-crypto { border-color:#e65100; }
+  .fl-other { border-color:#666; }
+</style>
+</head>
+<body>
+
+<h1>Secure Centralized EV Charging Payment Gateway</h1>
+<h2>BITS F463 Cryptography Term Project - Complete System Flow</h2>
+
+<!-- ENTITIES -->
+<div class="section">
+  <div class="section-title">Three Entities</div>
+  <div class="entities">
+    <div class="entity e-grid">
+      <h3>Grid Authority Laptop</h3>
+      <p>Central server. Registers franchises and users. Validates transactions (PIN, balance, VMID). Maintains the blockchain. Holds RSA keys.</p>
+      <div class="port">grid_authority_app.py : port 5000</div>
+    </div>
+    <div class="entity e-kiosk">
+      <h3>Charging Kiosk Terminal</h3>
+      <p>Station machine. Encrypts FID with ASCON-128, generates QR codes. Decrypts scanned QR data. Forwards transactions to Grid.</p>
+      <div class="port">charging_kiosk_app.py : port 5001</div>
+    </div>
+    <div class="entity e-user">
+      <h3>EV Owner Device</h3>
+      <p>User's phone. Registers with Grid. Scans QR codes from kiosk. Sends VMID + PIN + amount to pay for charging.</p>
+      <div class="port">user_device_app.py : port 5002</div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTRATION FLOW -->
+<div class="section">
+  <div class="section-title">Registration Flow</div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num c-grid">1</div>
+      <div class="flow-box">
+        <div class="who" style="color:#0d47a1;">GRID AUTHORITY</div>
+        <div class="what">Franchise owner registers: provides name, zone code, password, initial balance</div>
+        <div class="how">FID = SHA3(name + timestamp + password)[:16 hex chars]<br>Password stored as SHA3(password)</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-user">2</div>
+      <div class="flow-box">
+        <div class="who" style="color:#6a1b9a;">USER DEVICE -> GRID</div>
+        <div class="what">EV owner registers: provides name, zone code, password, 4-digit PIN, mobile number, balance</div>
+        <div class="how">UID = SHA3(name + timestamp + password)[:16]<br>VMID = SHA3(UID + mobile)[:16]<br>PIN stored as SHA3(pin)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTION FLOW -->
+<div class="section">
+  <div class="section-title">Complete Transaction Flow</div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num c-kiosk">1</div>
+      <div class="flow-box">
+        <div class="who" style="color:#2e7d32;">KIOSK</div>
+        <div class="what">Kiosk fetches franchise list from Grid, operator selects one</div>
+        <div class="how">GET http://127.0.0.1:5000/api/franchises</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-kiosk">2</div>
+      <div class="flow-box">
+        <div class="who" style="color:#2e7d32;">KIOSK (ASCON-128)</div>
+        <div class="what">Encrypts FID with ASCON-128 using random nonce. Generates QR code image containing encrypted data.</div>
+        <div class="how">nonce = os.urandom(16)<br>ciphertext, tag = ascon_encrypt(key, nonce, fid, associated_data)<br>QR = session_id | ciphertext_hex | tag_hex | ad_hex</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-user">3</div>
+      <div class="flow-box">
+        <div class="who" style="color:#6a1b9a;">USER DEVICE</div>
+        <div class="what">User selects QR session (or scans QR from kiosk screen), picks their account, enters PIN and amount</div>
+        <div class="how">QR data obtained from dropdown or camera scan</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-user">4</div>
+      <div class="flow-box">
+        <div class="who" style="color:#6a1b9a;">USER DEVICE -> KIOSK</div>
+        <div class="what">Device sends QR data + VMID + PIN + amount to the Kiosk</div>
+        <div class="how">POST http://127.0.0.1:5001/api/process_session<br>body: {qr_data, vmid, pin, amount}</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-kiosk">5</div>
+      <div class="flow-box">
+        <div class="who" style="color:#2e7d32;">KIOSK (ASCON-128 DECRYPT)</div>
+        <div class="what">Checks if session is expired (5 min) or already used. Decrypts QR data using ASCON with stored nonce to recover original FID.</div>
+        <div class="how">fid = ascon_decrypt(key, nonce, ciphertext, tag, ad)<br>If tag mismatch -> reject (tampered QR)</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-kiosk">6</div>
+      <div class="flow-box">
+        <div class="who" style="color:#2e7d32;">KIOSK -> GRID</div>
+        <div class="what">Forwards decrypted FID + VMID + PIN + amount to the Grid Authority</div>
+        <div class="how">POST http://127.0.0.1:5000/api/process_transaction<br>body: {fid, vmid, pin, amount}</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-grid">7</div>
+      <div class="flow-box">
+        <div class="who" style="color:#0d47a1;">GRID - VALIDATION</div>
+        <div class="what">Grid validates everything in order:</div>
+        <div class="how">
+          1. Does FID exist and is franchise active?<br>
+          2. Does any user have this VMID? Is user active?<br>
+          3. Does SHA3(entered_pin) == stored pin_hash?<br>
+          4. Is user balance >= amount?
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-grid">8</div>
+      <div class="flow-box">
+        <div class="who" style="color:#0d47a1;">GRID - FUND TRANSFER</div>
+        <div class="what">Deducts amount from user balance, credits franchise balance</div>
+        <div class="how">user["balance"] -= amount<br>franchise["balance"] += amount</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-chain">9</div>
+      <div class="flow-box">
+        <div class="who" style="color:#e65100;">BLOCKCHAIN</div>
+        <div class="what">New block created and appended to chain</div>
+        <div class="how">
+          txn_id = SHA3(uid + fid + timestamp + amount)<br>
+          block_hash = SHA3(json of all block fields)<br>
+          previous_hash = last_block.hash<br>
+          dispute_flag = False
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num" style="background:#c62828;">10</div>
+      <div class="flow-box">
+        <div class="who" style="color:#c62828;">HARDWARE FAILURE CHECK (10% random)</div>
+        <div class="what">If hardware fails: reverse the transfer, add a dispute block with negative amount</div>
+        <div class="how">user["balance"] += amount (refund)<br>franchise["balance"] -= amount<br>new block with amount=-X, dispute=True</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-kiosk">11</div>
+      <div class="flow-box">
+        <div class="who" style="color:#2e7d32;">KIOSK</div>
+        <div class="what">Receives Grid response. Marks session as used. Relays result to User Device.</div>
+        <div class="how">qr_sessions[sid]["used"] = True<br>QR image deleted on next cleanup cycle</div>
+      </div>
+    </div>
+    <div class="flow-arrow">|</div>
+    <div class="flow-step">
+      <div class="flow-num c-user">12</div>
+      <div class="flow-box">
+        <div class="who" style="color:#6a1b9a;">USER DEVICE</div>
+        <div class="what">User sees result: approved (new balance shown), rejected (error message), or refund (hardware failure)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CRYPTO MAP -->
+<div class="section">
+  <div class="section-title">Where Each Algorithm Is Used</div>
+  <div class="crypto-grid">
+    <div class="crypto-card">
+      <h4>ASCON-128 (Lightweight Crypto)</h4>
+      <div class="where">
+        <b>Encrypt:</b> Kiosk encrypts FID -> VFID for QR code<br>
+        <b>Decrypt:</b> Kiosk decrypts QR data -> recovers FID<br>
+        <b>Auth tag:</b> Detects if QR data was tampered
+      </div>
+      <div class="detail">
+        File: crypto_utils/ascon.py<br>
+        Key: 128-bit (config.py)<br>
+        Nonce: 128-bit random per session<br>
+        Tag: 128-bit authentication
+      </div>
+    </div>
+    <div class="crypto-card">
+      <h4>SHA-3 (Keccak-256)</h4>
+      <div class="where">
+        <b>FID/UID:</b> SHA3(name+time+pass)[:16]<br>
+        <b>VMID:</b> SHA3(UID+mobile)[:16]<br>
+        <b>PIN hash:</b> SHA3(pin) stored at registration<br>
+        <b>Password hash:</b> SHA3(password) stored<br>
+        <b>Transaction ID:</b> SHA3(uid+fid+time+amount)<br>
+        <b>Block hash:</b> SHA3(json of block data)
+      </div>
+      <div class="detail">
+        File: crypto_utils/sha3_utils.py<br>
+        Uses hashlib.sha3_256
+      </div>
+    </div>
+    <div class="crypto-card">
+      <h4>RSA (Public Key Crypto)</h4>
+      <div class="where">
+        <b>Key gen:</b> Grid generates (e,n) and (d,n) at startup<br>
+        <b>Encrypt:</b> User encrypts PIN and VMID with public key<br>
+        <b>Decrypt:</b> Grid decrypts with private key
+      </div>
+      <div class="detail">
+        File: crypto_utils/rsa_utils.py<br>
+        Key size: 20 bits (for Shor's demo)<br>
+        e = 65537, d = mod_inverse(e, phi)
+      </div>
+    </div>
+    <div class="crypto-card">
+      <h4>Shor's Algorithm (Quantum Attack)</h4>
+      <div class="where">
+        <b>Input:</b> RSA modulus n from Grid's public key<br>
+        <b>Does:</b> Factors n into p,q using period-finding<br>
+        <b>Output:</b> Recovers private key d, proves RSA is broken
+      </div>
+      <div class="detail">
+        File: crypto_utils/shor_simulation.py<br>
+        Classical simulation (brute-force order finding)<br>
+        Quantum step would use QFT
+      </div>
+    </div>
+    <div class="crypto-card">
+      <h4>Blockchain</h4>
+      <div class="where">
+        <b>Record:</b> Each successful txn = new block<br>
+        <b>Link:</b> Each block stores previous block's hash<br>
+        <b>Validate:</b> Recompute hashes, check linkage<br>
+        <b>Dispute:</b> Hardware failure = refund block (negative amount, dispute=True)
+      </div>
+      <div class="detail">
+        File: blockchain/ledger.py<br>
+        Genesis block created at Grid startup<br>
+        Centralized (Grid is sole maintainer)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDGE CASES -->
+<div class="section">
+  <div class="section-title">Edge Cases Handled</div>
+  <div class="edge-grid">
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Wrong PIN</b><br><span>SHA3 hash mismatch. Rejected but session stays valid for retry.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Low balance</b><br><span>Grid checks balance before deducting. Shows available vs required.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Invalid VMID</b><br><span>No user found with that VMID. Transaction rejected.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Tampered QR</b><br><span>ASCON tag verification fails. Decryption rejected.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Expired QR (>5 min)</b><br><span>Kiosk checks timestamp. Rejects with elapsed time.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Reused QR</b><br><span>Kiosk checks used flag. Single-use only.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Hardware failure</b><br><span>10% chance. Funds reversed. Dispute block added to chain.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Inactive account</b><br><span>active=False on franchise or user. Transaction blocked.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Duplicate registration</b><br><span>Same name+zone rejected for both franchises and users.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Blockchain tampered</b><br><span>validate_chain() recomputes hashes and checks linkage.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Grid/Kiosk offline</b><br><span>ConnectionError caught. User sees error message, no crash.</span></div>
+    </div>
+    <div class="edge-item">
+      <div class="edge-icon">X</div>
+      <div class="edge-text"><b>Bad zone code / PIN format</b><br><span>Validated during registration. Rejected with specific error.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FILE MAP -->
+<div class="section">
+  <div class="section-title">File Map - What Lives Where</div>
+  <div class="file-map">
+    <div class="file-item fl-grid">
+      <div class="fname">grid_authority_app.py</div>
+      <div class="fdesc">Flask app. Registration forms, blockchain viewer, balances, Shor's demo UI</div>
+    </div>
+    <div class="file-item fl-grid">
+      <div class="fname">entities/grid_authority.py</div>
+      <div class="fdesc">GridAuthority class. register_franchise(), register_user(), process_transaction()</div>
+    </div>
+    <div class="file-item fl-kiosk">
+      <div class="fname">charging_kiosk_app.py</div>
+      <div class="fdesc">Flask app. QR generation UI, session list with timer, process_session API</div>
+    </div>
+    <div class="file-item fl-kiosk">
+      <div class="fname">entities/charging_kiosk.py</div>
+      <div class="fdesc">ChargingKiosk class. generate_vfid_and_qr(), decrypt_qr()</div>
+    </div>
+    <div class="file-item fl-user">
+      <div class="fname">user_device_app.py</div>
+      <div class="fdesc">Flask app. Register form, QR scanner, charge session UI</div>
+    </div>
+    <div class="file-item fl-user">
+      <div class="fname">entities/ev_owner.py</div>
+      <div class="fdesc">EVOwner class. register(), initiate_session()</div>
+    </div>
+    <div class="file-item fl-crypto">
+      <div class="fname">crypto_utils/ascon.py</div>
+      <div class="fdesc">ascon_encrypt(), ascon_decrypt(), generate_nonce()</div>
+    </div>
+    <div class="file-item fl-crypto">
+      <div class="fname">crypto_utils/sha3_utils.py</div>
+      <div class="fdesc">sha3_hash(), generate_id(), transaction_hash()</div>
+    </div>
+    <div class="file-item fl-crypto">
+      <div class="fname">crypto_utils/rsa_utils.py</div>
+      <div class="fdesc">generate_rsa_keypair(), rsa_encrypt(), rsa_decrypt()</div>
+    </div>
+    <div class="file-item fl-crypto">
+      <div class="fname">crypto_utils/shor_simulation.py</div>
+      <div class="fdesc">shor_factor(), demo_shor_attack(), _classical_order_finding()</div>
+    </div>
+    <div class="file-item fl-other">
+      <div class="fname">blockchain/ledger.py</div>
+      <div class="fdesc">Block class, Blockchain class. add_transaction(), validate_chain()</div>
+    </div>
+    <div class="file-item fl-other">
+      <div class="fname">config.py</div>
+      <div class="fdesc">ENERGY_PROVIDERS, ASCON_KEY, RSA_KEY_BITS, SESSION_TIMEOUT, etc.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

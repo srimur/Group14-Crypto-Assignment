@@ -2,11 +2,15 @@
 ## BITS F463 - Cryptography Term Project 2025-26
 
 ## Team Members
+<<<<<<< HEAD
 - Member 1 (ID: XXXXXXXX)
 - Member 2 (ID: XXXXXXXX)
 - Member 3 (ID: XXXXXXXX)
 
 ## What this project is
+=======
+- 
+>>>>>>> e3271f8b98d2cf06673f2d8fd6b2068d64ba0e06
 
 We built an EV charging payment system that uses ASCON for encrypting franchise data, SHA-3 for hashing, RSA to show how public key encryption works during credential transmission, and Shor's algorithm to show how quantum computers can break that RSA. All transactions are recorded on a blockchain.
 

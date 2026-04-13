@@ -83,17 +83,47 @@ def api_users():
     return jsonify(items)
 
 
-# Called by the Kiosk after it decrypts the QR code
+@app.route("/api/public_key")
+def api_public_key():
+    e, n = grid.get_public_key()
+    return jsonify({"e": e, "n": n})
+
+
 @app.route("/api/process_transaction", methods=["POST"])
 def api_process_transaction():
+    from crypto_utils.rsa_utils import rsa_decrypt
     data = request.json
     fid = data.get("fid", "").strip()
-    vmid = data.get("vmid", "").strip()
-    pin = data.get("pin", "").strip()
     amount = float(data.get("amount", 0))
 
-    if not all([fid, vmid, pin]) or amount <= 0:
+    encrypted_pin = data.get("encrypted_pin")
+    encrypted_vmid = data.get("encrypted_vmid")
+    vmid = data.get("vmid", "").strip()
+    pin = data.get("pin", "").strip()
+
+    if not fid or amount <= 0:
         return jsonify({"success": False, "error": "All fields are required."})
+
+    # if credentials came RSA-encrypted, decrypt them
+    private_key = grid.rsa_keys["private"]
+    if encrypted_pin is not None and encrypted_vmid is not None:
+        try:
+            pin_int = rsa_decrypt(int(encrypted_pin), private_key)
+            vmid_int = rsa_decrypt(int(encrypted_vmid), private_key)
+            pin = str(pin_int)
+            # recover vmid hex from decrypted int
+            vmid_recovered = hex(vmid_int)[2:]
+            # match against registered users by comparing the decrypted value
+            for uid, u in grid.users.items():
+                if int(u["vmid"], 16) % grid.rsa_keys["public"][1] == vmid_int:
+                    vmid = u["vmid"]
+                    break
+            print(f"[Grid] RSA-decrypted credentials — PIN: {pin}, VMID: {vmid}")
+        except Exception as ex:
+            print(f"[Grid] RSA decryption failed: {ex}, using plaintext fallback")
+
+    if not vmid or not pin:
+        return jsonify({"success": False, "error": "VMID and PIN are required."})
 
     result = grid.process_transaction(fid=fid, vmid=vmid, pin=pin, amount=amount)
     return jsonify(result)

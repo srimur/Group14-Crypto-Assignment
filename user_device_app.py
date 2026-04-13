@@ -96,16 +96,7 @@ def api_charge():
         return jsonify({"success": False, "error": "All fields are required."})
 
     print(f"\n[Device] Initiating session — VMID: {vmid} | Amount: Rs.{amount:.2f}")
-
-    # Encrypt PIN/VMID with RSA for demonstration
-    try:
-        r = http_client.get(f"{GRID_URL}/api/providers", timeout=5)
-        from crypto_utils.rsa_utils import rsa_encrypt
-        rk = http_client.get(f"{GRID_URL}/api/franchises", timeout=5)
-        # RSA encryption is demonstrated in console output only
-        print(f"[Device] Sending encrypted credentials to Kiosk...")
-    except Exception:
-        pass
+    print(f"[Device] Sending credentials to Kiosk (Kiosk will RSA-encrypt before forwarding to Grid)")
 
     # Forward to Kiosk for processing
     try:
