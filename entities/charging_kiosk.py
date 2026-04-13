@@ -6,7 +6,6 @@ from config import ASCON_KEY, QR_CODE_DIR
 from qr_utils import generate_qr_code, decode_qr_data
 
 
-# Intermediary between EV Owner, Franchise, and Grid — handles QR encryption and session relay
 class ChargingKiosk:
 
     def __init__(self):
@@ -16,7 +15,6 @@ class ChargingKiosk:
 
         print("[Kiosk] Charging Kiosk initialized.")
 
-    # Encrypt FID with ASCON-128 and generate a QR code containing the encrypted payload
     def generate_vfid_and_qr(self, fid: str, franchise_name: str = "") -> dict:
         nonce = generate_nonce()
         associated_data = f"EV-KIOSK-{int(time.time())}".encode("utf-8")
@@ -64,7 +62,6 @@ class ChargingKiosk:
             "vfid": ciphertext.hex(),
         }
 
-    # Decrypt QR payload to recover the original Franchise ID
     def decrypt_qr(self, qr_data: str) -> str:
         try:
             parts = qr_data.split("|")
@@ -103,7 +100,6 @@ class ChargingKiosk:
             print(f"[Kiosk] QR decryption error: {e}")
             return None
 
-    # Decrypt QR, forward auth request to Grid, and relay the result
     def process_session(self, qr_data: str, vmid: str, pin: str,
                         amount: float, grid) -> dict:
         print(f"\n[Kiosk] Processing charging session...")

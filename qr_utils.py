@@ -9,7 +9,7 @@ except ImportError:
           "QR images won't be generated. Install with: pip install qrcode[pil]")
 
 
-# Generate a QR code image from data, falls back to text file if library unavailable
+
 def generate_qr_code(data: str, filepath: str) -> str:
     if not QR_AVAILABLE:
         print(f"[QR] QR library not available. Data: {data[:50]}...")
@@ -42,7 +42,7 @@ def generate_qr_code(data: str, filepath: str) -> str:
         return txt_path
 
 
-# Parse QR payload string into session_id, ciphertext, tag, and associated data
+
 def decode_qr_data(qr_data: str) -> dict:
     try:
         parts = qr_data.split("|")

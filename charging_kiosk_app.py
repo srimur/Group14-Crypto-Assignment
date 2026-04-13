@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template_string, request, jsonify, send_from_directory
 from entities.charging_kiosk import ChargingKiosk
-from config import QR_CODE_DIR
+from config import QR_CODE_DIR, SESSION_TIMEOUT
 
 app = Flask(__name__)
 kiosk = ChargingKiosk()
@@ -71,18 +71,35 @@ def api_generate_qr():
     })
 
 
-# List all active QR sessions
 @app.route("/api/qr_sessions")
 def api_qr_sessions():
+    now = time.time()
     items = []
+    expired_sids = []
     for sid, s in qr_sessions.items():
+        created = kiosk.active_sessions.get(sid, {}).get("timestamp", now)
+        elapsed = now - created
+        if s.get("used") or elapsed >= SESSION_TIMEOUT:
+            expired_sids.append(sid)
+            continue
+        remaining = int(SESSION_TIMEOUT - elapsed)
         fid = kiosk.active_sessions.get(sid, {}).get("fid", "?")
         items.append({
             "session_id": sid,
             "fid": fid,
             "vfid": s["vfid"],
             "qr_data": s["qr_data"],
+            "remaining_seconds": remaining,
         })
+    # clean up expired/used sessions and their QR images
+    for sid in expired_sids:
+        s = qr_sessions.pop(sid, None)
+        if s:
+            qr_path = s.get("qr_path", "")
+            if qr_path and os.path.exists(qr_path):
+                os.remove(qr_path)
+                print(f"[Kiosk] Cleaned up QR image: {qr_path}")
+        kiosk.active_sessions.pop(sid, None)
     return jsonify(items)
 
 
@@ -100,7 +117,19 @@ def api_process_session():
 
     print(f"\n[Kiosk] Processing session — VMID: {vmid} | Amount: Rs.{amount:.2f}")
 
-    # Decrypt QR to recover FID using ASCON
+    # check session expiry and single-use
+    parts = qr_data.split("|")
+    if len(parts) >= 1:
+        sid = parts[0]
+        session_info = qr_sessions.get(sid)
+        if session_info and session_info.get("used"):
+            return jsonify({"success": False, "error": "This QR session has already been used."})
+        session_meta = kiosk.active_sessions.get(sid)
+        if session_meta:
+            elapsed = time.time() - session_meta.get("timestamp", 0)
+            if elapsed >= SESSION_TIMEOUT:
+                return jsonify({"success": False, "error": f"QR session expired ({int(elapsed)}s elapsed, limit is {SESSION_TIMEOUT}s)."})
+
     fid = kiosk.decrypt_qr(qr_data)
     if fid is None:
         return jsonify({"success": False, "error": "Failed to decrypt QR code."})
@@ -114,6 +143,12 @@ def api_process_session():
         result = r.json()
     except http_client.exceptions.ConnectionError:
         return jsonify({"success": False, "error": "Cannot reach Grid Authority. Is it running?"})
+
+    if result.get("success") or result.get("refund"):
+        # mark session as used (one-time use)
+        if sid in qr_sessions:
+            qr_sessions[sid]["used"] = True
+            print(f"[Kiosk] Session {sid[:12]}... marked as used.")
 
     if result.get("success"):
         print(f"[Kiosk] Grid approved transaction.")
@@ -166,14 +201,13 @@ HTML_TEMPLATE = r"""
   table { width:100%; border-collapse:collapse; font-size:13px; }
   th { text-align:left; padding:8px; background:#e8f5e9; border-bottom:2px solid #ddd; font-size:12px; color:#2e7d32; }
   td { padding:8px; border-bottom:1px solid #eee; font-family:monospace; font-size:12px; }
-  .entity-badge { display:inline-block; background:#fff; color:#2e7d32; padding:2px 10px; border-radius:12px; font-size:11px; margin-left:10px; font-weight:bold; }
   .detail-box { background:#f5f5f5; border:1px solid #e0e0e0; border-radius:5px; padding:12px; margin-top:10px; font-size:12px; font-family:monospace; line-height:1.8; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Charging Kiosk Terminal <span class="entity-badge">Entity 2</span></h1>
+  <h1>Charging Kiosk Terminal</h1>
   <p>Physical kiosk at the charging station — Generates encrypted QR codes, processes sessions</p>
 </div>
 
@@ -241,13 +275,19 @@ async function loadSessions(){
   const items=await api('/api/qr_sessions');
   const el=$('sessions_list');
   if(!items.length){el.innerHTML='<p style="color:#999">No sessions yet.</p>';return;}
-  let html='<table><thead><tr><th>Session ID</th><th>FID</th><th>VFID</th></tr></thead><tbody>';
-  items.forEach(s=>{html+=`<tr><td>${s.session_id.slice(0,12)}...</td><td>${s.fid.slice(0,12)}...</td><td>${s.vfid.slice(0,12)}...</td></tr>`;});
+  let html='<table><thead><tr><th>Session ID</th><th>FID</th><th>Time Left</th></tr></thead><tbody>';
+  items.forEach(s=>{
+    const mins=Math.floor(s.remaining_seconds/60);
+    const secs=s.remaining_seconds%60;
+    const timeStr=`${mins}m ${secs}s`;
+    html+=`<tr><td>${s.session_id.slice(0,12)}...</td><td>${s.fid.slice(0,12)}...</td><td>${timeStr}</td></tr>`;
+  });
   el.innerHTML=html+'</tbody></table>';
 }
 
 loadFranchises();
 loadSessions();
+setInterval(loadSessions, 5000);
 </script>
 </body>
 </html>

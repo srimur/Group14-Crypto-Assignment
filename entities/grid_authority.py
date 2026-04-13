@@ -6,7 +6,6 @@ from blockchain.ledger import Blockchain
 from config import VALID_ZONE_CODES, ENERGY_PROVIDERS, HARDWARE_FAILURE_PROBABILITY, RSA_KEY_BITS
 
 
-# Central authority that registers entities, processes transactions, and maintains the ledger
 class GridAuthority:
 
     def __init__(self):
@@ -25,7 +24,6 @@ class GridAuthority:
     def get_rsa_keys(self) -> dict:
         return self.rsa_keys
 
-    # Register a new franchise after validating zone code and checking duplicates
     def register_franchise(self, name: str, zone_code: str,
                            password: str, initial_balance: float) -> dict:
         if zone_code not in VALID_ZONE_CODES:
@@ -68,7 +66,6 @@ class GridAuthority:
             "balance": initial_balance,
         }
 
-    # Register a new EV owner, generating UID and VMID via SHA-3
     def register_user(self, name: str, zone_code: str, password: str,
                       pin: str, mobile: str, initial_balance: float) -> dict:
         if zone_code not in VALID_ZONE_CODES:
@@ -113,7 +110,6 @@ class GridAuthority:
             "balance": initial_balance,
         }
 
-    # Validate credentials, transfer funds, record on blockchain, and handle hardware failures
     def process_transaction(self, fid: str, vmid: str, pin: str,
                             amount: float) -> dict:
         if fid not in self.franchises:
@@ -204,7 +200,6 @@ class GridAuthority:
                 return udata
         return None
 
-    # Print all franchise and user account balances
     def display_balances(self):
         print(f"\n{'='*60}")
         print("  ACCOUNT BALANCES")

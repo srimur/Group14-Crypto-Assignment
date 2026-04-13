@@ -166,7 +166,6 @@ HTML_TEMPLATE = r"""
   th { text-align:left; padding:8px; background:#f3e5f5; border-bottom:2px solid #ddd; font-size:12px; color:#6a1b9a; }
   td { padding:8px; border-bottom:1px solid #eee; font-family:monospace; font-size:12px; }
   .hidden { display:none; }
-  .entity-badge { display:inline-block; background:#fff; color:#6a1b9a; padding:2px 10px; border-radius:12px; font-size:11px; margin-left:10px; font-weight:bold; }
   .user-card { background:#fafafa; border:1px solid #e0e0e0; border-radius:5px; padding:10px; margin-bottom:8px; }
   .user-card .name { font-weight:bold; color:#6a1b9a; }
   .user-card .detail { font-size:12px; color:#555; font-family:monospace; margin-top:4px; }
@@ -175,7 +174,7 @@ HTML_TEMPLATE = r"""
 <body>
 
 <div class="header">
-  <h1>EV Owner Device <span class="entity-badge">Entity 3</span></h1>
+  <h1>EV Owner Device</h1>
   <p>Mobile device — Register, scan QR codes, and initiate charging sessions</p>
 </div>
 
@@ -340,7 +339,11 @@ async function loadChargeData(){
     const s1=$('ch_qr');
     if(!sessions.length){s1.innerHTML='<option value="">No QR sessions available</option>';return;}
     s1.innerHTML='<option value="">Select QR session...</option>';
-    sessions.forEach(s=>{s1.innerHTML+=`<option value='${s.qr_data}'>FID: ${s.fid.slice(0,10)}... (Session: ${s.session_id.slice(0,8)}...)</option>`;});
+    sessions.forEach(s=>{
+      const mins=Math.floor((s.remaining_seconds||0)/60);
+      const secs=(s.remaining_seconds||0)%60;
+      s1.innerHTML+=`<option value='${s.qr_data}'>FID: ${s.fid.slice(0,10)}... (${mins}m ${secs}s left)</option>`;
+    });
   } catch(e) {
     $('ch_qr').innerHTML='<option value="">Cannot reach Kiosk</option>';
   }

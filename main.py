@@ -42,7 +42,7 @@ def print_zones():
         print(f"    {provider}: {', '.join(zones)}")
 
 
-# Prompt user for franchise details and register with the grid
+
 def register_franchise_interactive(grid):
     print("\n--- Register Franchise ---")
     print_zones()
@@ -60,7 +60,7 @@ def register_franchise_interactive(grid):
     return franchise if result["success"] else None
 
 
-# Prompt user for EV owner details and register with the grid
+
 def register_user_interactive(grid):
     print("\n--- Register EV Owner ---")
     print_zones()
@@ -80,7 +80,7 @@ def register_user_interactive(grid):
     return user if result["success"] else None
 
 
-# Let user pick a franchise and generate an ASCON-encrypted QR code for it
+
 def generate_qr_interactive(kiosk, grid):
     print("\n--- Generate QR Code ---")
 
@@ -108,7 +108,7 @@ def generate_qr_interactive(kiosk, grid):
     return result
 
 
-# Walk the user through selecting a QR session, user, and amount to charge
+
 def initiate_session_interactive(kiosk, grid, qr_sessions):
     print("\n--- Initiate Charging Session ---")
 
@@ -166,7 +166,7 @@ def initiate_session_interactive(kiosk, grid, qr_sessions):
     return result
 
 
-# Run end-to-end automated demo: register, generate QRs, transact, validate
+
 def run_full_demo(grid, kiosk):
     print("\n" + "=" * 60)
     print("  RUNNING FULL AUTOMATED DEMO")

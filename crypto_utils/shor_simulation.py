@@ -3,14 +3,13 @@ import math
 import time
 
 
-# Euclidean GCD
 def _gcd(a: int, b: int) -> int:
     while b:
         a, b = b, a % b
     return a
 
 
-# Find smallest r such that a^r ≡ 1 (mod N) — classical stand-in for quantum period-finding
+# finds the order r of a mod N (simulates the quantum period-finding step)
 def _classical_order_finding(a: int, N: int) -> int:
     r = 1
     current = a % N
@@ -22,7 +21,7 @@ def _classical_order_finding(a: int, N: int) -> int:
     return r
 
 
-# Classical simulation of Shor's algorithm to factor N into (p, q)
+# tries to factor N using shor's algorithm (classical simulation)
 def shor_factor(N: int, verbose: bool = True) -> tuple:
     if verbose:
         print(f"\n{'='*60}")
@@ -98,7 +97,7 @@ def shor_factor(N: int, verbose: bool = True) -> tuple:
     return (N, 1)
 
 
-# Run Shor's algorithm on an RSA key and attempt to recover the private key
+# demo: use shor's to break the given RSA key
 def demo_shor_attack(rsa_keys: dict):
     e, n = rsa_keys["public"]
     d, _ = rsa_keys["private"]

@@ -207,13 +207,12 @@ HTML_TEMPLATE = r"""
   .shor-row { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
   .shor-row .label { color:#555; } .shor-row .val { font-family:monospace; font-weight:bold; }
   .hidden { display:none; }
-  .entity-badge { display:inline-block; background:#0d47a1; color:#fff; padding:2px 10px; border-radius:12px; font-size:11px; margin-left:10px; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Grid Authority Laptop <span class="entity-badge">Entity 1</span></h1>
+  <h1>Grid Authority Laptop</h1>
   <p>Central governing body — Registers entities, maintains blockchain, manages balances</p>
 </div>
 

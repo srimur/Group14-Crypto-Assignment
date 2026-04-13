@@ -2,7 +2,6 @@ import random
 from sympy import isprime, mod_inverse
 
 
-# Generate a random prime of approximately `bits` bits
 def _generate_prime(bits: int) -> int:
     while True:
         candidate = random.getrandbits(bits)
@@ -11,7 +10,6 @@ def _generate_prime(bits: int) -> int:
             return candidate
 
 
-# Generate an RSA keypair, returns dict with public/private keys and primes
 def generate_rsa_keypair(bits: int = 20) -> dict:
     half = bits // 2
     p = _generate_prime(half)
@@ -38,7 +36,6 @@ def generate_rsa_keypair(bits: int = 20) -> dict:
     }
 
 
-# RSA encrypt a single integer (must be < n)
 def rsa_encrypt(plaintext_int: int, public_key: tuple) -> int:
     e, n = public_key
     if plaintext_int >= n:
@@ -46,13 +43,11 @@ def rsa_encrypt(plaintext_int: int, public_key: tuple) -> int:
     return pow(plaintext_int, e, n)
 
 
-# RSA decrypt a ciphertext integer using private key
 def rsa_decrypt(ciphertext_int: int, private_key: tuple) -> int:
     d, n = private_key
     return pow(ciphertext_int, d, n)
 
 
-# String <-> integer conversion helpers for RSA
 def string_to_int(s: str) -> int:
     return int.from_bytes(s.encode("utf-8"), "big")
 

@@ -3,7 +3,6 @@ import json
 from crypto_utils.sha3_utils import sha3_hash, transaction_hash
 
 
-# Represents a single block containing one transaction
 class Block:
 
     def __init__(self, index: int, transaction_data: dict,
@@ -23,7 +22,6 @@ class Block:
         self.dispute_flag = transaction_data.get("dispute", False)
         self.hash = self.compute_hash()
 
-    # SHA-3 hash of the entire block contents
     def compute_hash(self) -> str:
         block_string = json.dumps({
             "index": self.index,
@@ -49,7 +47,6 @@ class Block:
         )
 
 
-# Simple append-only blockchain ledger for recording transactions
 class Blockchain:
 
     def __init__(self):
@@ -71,7 +68,6 @@ class Blockchain:
     def last_block(self) -> Block:
         return self.chain[-1]
 
-    # Append a new transaction block to the chain
     def add_transaction(self, uid: str, fid: str, amount: float,
                         description: str = "", dispute: bool = False) -> Block:
         transaction_data = {
@@ -89,7 +85,6 @@ class Blockchain:
         self.chain.append(new_block)
         return new_block
 
-    # Verify hash integrity and chain linkage across all blocks
     def validate_chain(self) -> tuple:
         for i in range(1, len(self.chain)):
             current = self.chain[i]

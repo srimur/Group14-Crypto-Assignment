@@ -2,7 +2,6 @@ from crypto_utils.rsa_utils import rsa_encrypt, string_to_int
 from crypto_utils.sha3_utils import sha3_hash
 
 
-# Represents an EV driver who scans QR codes and initiates charging sessions
 class EVOwner:
 
     def __init__(self, name: str, zone_code: str, password: str,
@@ -16,7 +15,6 @@ class EVOwner:
         self.uid = None
         self.vmid = None
 
-    # Register this EV owner with the Grid Authority
     def register(self, grid) -> dict:
         result = grid.register_user(
             name=self.name,
@@ -34,7 +32,6 @@ class EVOwner:
             print(f"[User] Registration failed: {result['error']}")
         return result
 
-    # Scan QR, encrypt credentials with RSA, and send charging request via kiosk
     def initiate_session(self, qr_data: str, amount: float, kiosk, grid) -> dict:
         print(f"\n[User] {self.name} scanning QR code...")
         print(f"[User] Providing VMID: {self.vmid}")

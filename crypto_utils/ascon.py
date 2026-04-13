@@ -1,12 +1,11 @@
 import os
 import ascon
 
-ASCON_KEY_SIZE = 16   # 128-bit key
-ASCON_NONCE_SIZE = 16 # 128-bit nonce
-ASCON_TAG_SIZE = 16   # 128-bit auth tag
+ASCON_KEY_SIZE = 16
+ASCON_NONCE_SIZE = 16
+ASCON_TAG_SIZE = 16
 
 
-# Encrypt plaintext with ASCON-128 AEAD, returns (ciphertext, tag)
 def ascon_encrypt(key: bytes, nonce: bytes, plaintext: bytes,
                   associated_data: bytes = b"") -> tuple:
     assert len(key) == ASCON_KEY_SIZE, f"Key must be {ASCON_KEY_SIZE} bytes"
@@ -20,7 +19,6 @@ def ascon_encrypt(key: bytes, nonce: bytes, plaintext: bytes,
     return ciphertext, tag
 
 
-# Decrypt ciphertext with ASCON-128, raises ValueError on tag mismatch
 def ascon_decrypt(key: bytes, nonce: bytes, ciphertext: bytes,
                   tag: bytes, associated_data: bytes = b"") -> bytes:
     assert len(key) == ASCON_KEY_SIZE
@@ -36,6 +34,5 @@ def ascon_decrypt(key: bytes, nonce: bytes, ciphertext: bytes,
     return plaintext
 
 
-# Generate a random 128-bit nonce
 def generate_nonce() -> bytes:
     return os.urandom(ASCON_NONCE_SIZE)

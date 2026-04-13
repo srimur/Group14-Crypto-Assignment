@@ -1,4 +1,3 @@
-# Represents a charging station business registered with the Grid
 class Franchise:
 
     def __init__(self, name: str, zone_code: str, password: str,
@@ -9,7 +8,6 @@ class Franchise:
         self.initial_balance = initial_balance
         self.fid = None
 
-    # Register this franchise with the Grid Authority
     def register(self, grid) -> dict:
         result = grid.register_franchise(
             name=self.name,
@@ -24,7 +22,6 @@ class Franchise:
             print(f"[Franchise] Registration failed: {result['error']}")
         return result
 
-    # Handle transaction result notification from the Grid
     def receive_confirmation(self, result: dict):
         if result["success"]:
             print(f"[Franchise] ✓ Payment received from {result['user_name']}. "
